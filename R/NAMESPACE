@@ -1,0 +1,11 @@
+# Import
+importFrom("graphics", "points")
+importFrom("stats", "predict")
+importFrom("stats", "lm.fit")
+
+# Export
+export("svi", "svifit", "svifit2", "svipar", "geom")
+export("durrleman", "axel", "rnd")
+
+# Methods
+S3method("predict", "svi")

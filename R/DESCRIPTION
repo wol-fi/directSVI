@@ -1,0 +1,10 @@
+Package: svi
+Type: Package
+Title: SVI Implied Volatility Surface
+Version: 0.1.0
+Author: Wolfgang Schadner
+Maintainer: Wolfgang Schadner <wolfgang.schadner@unisg.ch>
+Description: The package provides direct and non-direct least-squares estimations for the SVI equation.
+License: GPL-2 | GPL-3
+Encoding: UTF-8
+LazyData: true
