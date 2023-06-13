@@ -11,6 +11,6 @@ Direct Least-Squares Method for the Stochastic Volatility Inspired (SVI) equatio
 
 ## Code:
 I'm planning to make the code available by summer 2023:
-- ["R"](https://github.com/wol-fi/directSVI/tree/main/R)
-- ["Python"](https://github.com/wol-fi/directSVI/tree/main/python)
+- [R](https://github.com/wol-fi/directSVI/tree/main/R)
+- [Python](https://github.com/wol-fi/directSVI/tree/main/python)
 - Matlab
