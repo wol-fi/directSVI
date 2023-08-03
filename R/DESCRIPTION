@@ -1,0 +1,11 @@
+Package: svi
+Type: Package
+Title: SVI Implied Volatility Surface
+Version: 0.2.1
+Author: Wolfgang Schadner
+Maintainer: Wolfgang Schadner <wolfgang.schadner@uni.li>
+Description: The package provides methods for fitting the Stochastic Volatility Inspired (SVI) equation to a slice of implied volatilities. Supported methods are the direct least-squares, vanishing wings, and quasi-explicit. 
+License: GPL-2 | GPL-3
+Encoding: UTF-8
+LazyData: true
+Depends: Matrix

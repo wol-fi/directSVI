@@ -1,0 +1,12 @@
+# Import
+importFrom("graphics", "points", "abline")
+importFrom("stats", "predict", "lm.fit", "lm.wfit", "optim", "uniroot", "integrate")
+importFrom("Matrix", "tcrossprod", "chol2inv", "chol")
+
+# Export
+export("svi", "svifit", "svipar", "geom")
+export("durrleman", "axel")
+export("rnd", "rnmoment", "rnskew", "rnkurt", "rnvar")
+
+# Methods
+S3method("predict", "svi")
