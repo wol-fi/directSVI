@@ -94,7 +94,7 @@ svifit <- function(x, y, fit="direct", na.rm=TRUE, low_ecc=TRUE, W=NA, a=NA, ini
       mdl0 <- lm.fit(cbind(1, xb, xbb), y)
       return(mdl0)
     }
-    mdl1 <- optim(init, function(par, x=x,y=y) sum(fqe(par,y,x)$residuals^2), 
+    mdl1 <- optim(init, function(par, x=x,y=y) sum(fqe(par,x=x, y=y)$residuals^2), 
                  x=x, y=y, lower=c(-Inf, 0), method="L-BFGS-B")
     par1 <- mdl1$par
     mdl2 <- fqe(par1, x, y)
