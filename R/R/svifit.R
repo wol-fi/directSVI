@@ -1,7 +1,5 @@
 
-svifit <- function(x, y, C="shape", a=NA, W=NA, na.rm=TRUE){
-
-  if(length(x) != length(y)) stop("x and y are of unequal length!")
+svifit <- function(x, y, fit="direct", na.rm=TRUE, low_ecc=TRUE, W=NA, a=NA, init=c(0, 0.2)){
   nas <- is.na(x) | is.na(y)
   if(na.rm){
     sel <- !nas
@@ -10,19 +8,27 @@ svifit <- function(x, y, C="shape", a=NA, W=NA, na.rm=TRUE){
   } else {
     if(any(nas)) stop("Data includes NA's. Remove or set 'na.rm=TRUE'.")
   }
-  if(length(W)==1) W <- rep(1, length(x))
-
-  if(C[1] == "none"){
-    X <- cbind(x^2, x*y, x, y, 1)
-    mdl <- lm.wfit(X, -y^2, W)
+  n <- length(x)
+  if(n != length(y)) stop("x and y are of unequal length!")
+  if(is.na(W)){
+    W <- rep(1, n)
+  } else {
+    W <- as.matrix(W)
+    if(sum(dim(W) == c(n, 1)) != 2) stop("Weights `W` not properly defined. Must be `NA` or a vector of same length as `x`.")
+    W <- as.numeric(W)
+  }
+  
+  if(fit=="direct_UC"){
+    D <- cbind(x^2, x*y, x, y, 1)
+    mdl <- lm.wfit(D, -y^2, W)
     z <- mdl$coefficients
-    z <- c(z[1:2], 1, z[3:5])
-  } else if(C[1] == "vanish"){
+    z <- c(z[1], 1, z[2:5])
+  } else if(fit == "vanish"){
     if(is.na(a)){
-      X <- cbind(x*y, x, y, 1)
+      D <- cbind(x*y, x, y, 1)
       mdl <- lm.wfit(X, -y^2, W)
       z <- mdl$coefficients
-      z <- c(0, z[1], 1, z[2:4])
+      z <- c(0, 1, z[1:4])
     } else {
       Y <- -(y-a)^2
       X <- cbind((a-y)*x, y, 1)
@@ -35,58 +41,73 @@ svifit <- function(x, y, C="shape", a=NA, W=NA, na.rm=TRUE){
       par <- c(a, b, rho, m, sigma)
       z <- svipar(par)
     }
-
-  } else {
-    W <- diag(W)
-    if(C[1]=="shape"){
-      sel1 <- 1:3
-      sel2 <- 4:6
-      C1 <- rbind(c(0,0,-2), c(0,1,0), c(-2,0,0))
-      Ci <- rbind(c( 0, 0,-0.5), c( 0, 1, 0), c(-0.5, 0, 0))
-    } else if(C[1]=="refined"){
-      sel1 <- c(1,3)
-      sel2 <- c(2,4:6)
-      C1 <- rbind(c(0, -0.5), c(-0.5, 0))
-      Ci <- rbind(c(0, -2), c(-2, 0))
-    } else {
-      if(!min(dim(C)==c(6,6))) stop("Constraint matrix not properly defined. Should be of Dimension 6x6.")
-      # individual C, detect where the constraint enters
-      sel0 <- (colSums(C==0)<6 | rowSums(C==0)<6)
-      sel1 <- (1:6)[sel0]
-      sel2 <- (1:6)[!sel0]
-      C1 <- C[sel1,sel1]
-      Ci <- solve(C1)
-    }
-    # design matrix
-    D <- cbind(x^2, x*y, y^2, x, y, 1)
-    S <- t(D) %*% W %*% D
-    S1 <- S[sel1, sel1]
-    S2 <- S[sel1, sel2]
-    S3 <- S[sel2, sel2]
-    M0 <- -solve(S3) %*% t(S2)
+  } else if(fit == "direct"){
+    D <- cbind(x^2, y^2, x*y, x, y, 1)
+    C1 <- rbind(c(0, -0.5), c(-0.5, 0))
+    Ci <- rbind(c(0, -2), c(-2, 0))
+    S <- crossprod(D, diag(W)) %*% D
+    S1 <- S[1:2, 1:2]
+    S2 <- S[1:2, 3:6]
+    S3 <- S[3:6, 3:6]
+    # M0 <- -Matrix::tcrossprod(Matrix::chol2inv(Matrix::chol(S3)), S2)
+    M0 <- 
     M <- (S1 + S2 %*% M0)
-
-    # eigen-decomposition
-    if(is.null(Ci)){
-      E <- eigen(solve(M) %*% C1)
-      lambda <- 1/E$values
-    } else {
-      E <- eigen(Ci %*% M)
-      lambda <- E$values
-    }
+    E <- eigen(Ci %*% M)
     evec <- E$vectors
-    cond <- diag(t(evec)%*%C1%*%evec)
-    lambda[cond < 0] <- NA
-    zh2 <- evec[,which.min(lambda)]
+    evec[,1] <- evec[,1]/evec[2,1]
+    evec[,2] <- evec[,2]/evec[2,2]
+    zh2 <- evec[,evec[1,] < 0]
     zh <- c(zh2, M0 %*% zh2)
-    z <- zh
-    z <- z[sort(c(sel1, sel2), index.return=T)$ix]
-    z <- z/z[3]
-
+    if(low_ecc){
+      ze2 <- evec[,evec[1,] > 0]
+      ze <- c(ze2, M0 %*% ze2)
+      Dx <- cbind(2*x, 0, y, 1, 0, 0)
+      Dy <- cbind(0, 2*y, x, 0, 1, 0)
+      Sxy <- crossprod(Dx,Dx) + crossprod(Dy,Dy)
+      sig <- c(crossprod(ze, S) %*% ze,
+               crossprod(ze, S) %*% zh,
+               crossprod(zh, S) %*% zh,
+               crossprod(ze, Sxy) %*% ze,
+               crossprod(ze, Sxy) %*% zh,
+               crossprod(zh, Sxy) %*% zh)
+      Q2 <- sig[2]*(sig[4]-sig[6])+sig[3]*(sig[5]-sig[4])+sig[1]*(sig[6]-sig[5])
+      Q1 <- sig[1]*(2*sig[5]-sig[6])+sig[4]*(sig[3]-2*sig[2])
+      Q0 <- sig[2]*sig[4]-sig[1]*sig[5]
+      mu_12 <- (-Q1 + c(1,-1)*sqrt(Q1^2 - 4*Q2*Q0))/(2*Q2)
+      cond <- function(mu){
+        z <- mu*zh + (1-mu)*ze
+        a <- z[3]^2 - 4*z[1]
+        b <- 2*z[3]*z[5] - 4*z[4]
+        C <- z[5]^2 - 4*z[6]
+        4*a*C - b^2
+      }
+      mu_min <- uniroot(cond, c(0,10^3))$root+1e-4
+      mu <- max(mu_min, max(mu_12), 1)
+      z <- (1-mu)*ze + mu*zh
+    } else {
+      z <- zh
+    }
+  } else if(fit == "QE"){
+    # quasi explicit
+    fqe <- function(par, x, y){
+      xb <- x - par[1]
+      xbb <- sqrt(xb^2 + par[2]^2)
+      mdl0 <- lm.fit(cbind(1, xb, xbb), y)
+      return(mdl0)
+    }
+    mdl1 <- optim(init, function(par, x=x,y=y) sum(fqe(par,y,x)$residuals^2), 
+                 x=x, y=y, lower=c(-Inf, 0), method="L-BFGS-B")
+    par1 <- mdl1$par
+    mdl2 <- fqe(par1, x, y)
+    par2 <- mdl2$coefficients  
+    par <- c(par2[1], par2[3], par2[2]/par2[3], par1[1], par1[2])
+    z <- svipar(par)
+  } else { 
+    stop("Fitting method not properly defined.")
   }
   yhat <- svi(x, z)
   par <- svipar(z)
-  ret <- list(yhat=yhat, par=par, z=z/z[3], input=cbind(x,y))
+  ret <- list(yhat=yhat, par=par, z=z, input=cbind(x,y))
   class(ret) <- "svi"
   return(ret)
 }
@@ -115,3 +136,7 @@ plot.svi <-function(fit, extrap=1, ...){
   plot(xn, yh, type="l")
   points(df)
 }
+
+
+
+

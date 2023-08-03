@@ -1,8 +1,7 @@
 # Import
-importFrom("graphics", "points")
-importFrom("stats", "predict")
-importFrom("stats", "lm.fit")
-importFrom("stats", "lm.wfit")
+importFrom("graphics", "points", "abline")
+importFrom("stats", "predict", "lm.fit", "lm.wfit", "optim", "uniroot")
+importFrom("Matrix", "tcrossprod", "chol2inv", "chol")
 
 # Export
 export("svi", "svifit", "svipar", "geom")
