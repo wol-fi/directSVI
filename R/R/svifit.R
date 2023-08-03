@@ -47,10 +47,9 @@ svifit <- function(x, y, fit="direct", na.rm=TRUE, low_ecc=TRUE, W=NA, a=NA, ini
     Ci <- rbind(c(0, -2), c(-2, 0))
     S <- crossprod(D, diag(W)) %*% D
     S1 <- S[1:2, 1:2]
-    S2 <- S[1:2, 3:6]
+    S2 <- S[1:2, 3:6] 
     S3 <- S[3:6, 3:6]
-    # M0 <- -Matrix::tcrossprod(Matrix::chol2inv(Matrix::chol(S3)), S2)
-    M0 <- 
+    M0 <- -Matrix::tcrossprod(Matrix::chol2inv(Matrix::chol(S3)), S2)
     M <- (S1 + S2 %*% M0)
     E <- eigen(Ci %*% M)
     evec <- E$vectors
