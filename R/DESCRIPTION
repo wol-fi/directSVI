@@ -1,7 +1,7 @@
 Package: svi
 Type: Package
 Title: SVI Implied Volatility Surface
-Version: 0.2.1
+Version: 0.2.2
 Author: Wolfgang Schadner
 Maintainer: Wolfgang Schadner <wolfgang.schadner@uni.li>
 Description: A package for fitting the option-implied volatility surface, computing the risk-neutral density distribution and risk-neutral moments based on the Stochastic Volatility Inspired (SVI) equation.

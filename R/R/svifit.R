@@ -43,35 +43,27 @@ svifit <- function(x, y, fit="direct", na.rm=TRUE, low_ecc=TRUE, W=NA, a=NA, ini
     }
   } else if(fit == "direct"){
     D <- cbind(x^2, y^2, x*y, x, y, 1)
-    C1 <- rbind(c(0, -0.5), c(-0.5, 0))
-    Ci <- rbind(c(0, -2), c(-2, 0))
     S <- crossprod(D, diag(W)) %*% D
     S1 <- S[1:2, 1:2]
     S2 <- S[1:2, 3:6] 
     S3 <- S[3:6, 3:6]
     M0 <- -Matrix::tcrossprod(Matrix::chol2inv(Matrix::chol(S3)), S2)
     M <- (S1 + S2 %*% M0)
-    E <- eigen(Ci %*% M)
-    evec <- E$vectors
-    evec[,1] <- evec[,1]/evec[2,1]
-    evec[,2] <- evec[,2]/evec[2,2]
-    zh2 <- evec[,evec[1,] < 0]
+    zh2 <- c(-sqrt(M[2,2]/M[1,1]),1)
     zh <- c(zh2, M0 %*% zh2)
     if(low_ecc){
-      ze2 <- evec[,evec[1,] > 0]
+      ze2 <- c(-zh2[1],1)
       ze <- c(ze2, M0 %*% ze2)
       Dx <- cbind(2*x, 0, y, 1, 0, 0)
       Dy <- cbind(0, 2*y, x, 0, 1, 0)
-      Sxy <- crossprod(Dx,Dx) + crossprod(Dy,Dy)
-      sig <- c(crossprod(ze, S) %*% ze,
-               crossprod(ze, S) %*% zh,
-               crossprod(zh, S) %*% zh,
-               crossprod(ze, Sxy) %*% ze,
-               crossprod(ze, Sxy) %*% zh,
-               crossprod(zh, Sxy) %*% zh)
-      Q2 <- sig[2]*(sig[4]-sig[6])+sig[3]*(sig[5]-sig[4])+sig[1]*(sig[6]-sig[5])
-      Q1 <- sig[1]*(2*sig[5]-sig[6])+sig[4]*(sig[3]-2*sig[2])
+      Sxy <- Matrix::crossprod(Dx,Dx) + Matrix::crossprod(Dy,Dy)
+      Z <- cbind(ze, zh)
+      sig <- (Matrix::crossprod(Z, S) %*% Z)[c(1,3,4)]
+      sig <- c(sig, (Matrix::crossprod(Z, Sxy) %*% Z)[c(1,3,4)])
       Q0 <- sig[2]*sig[4]-sig[1]*sig[5]
+      Q1 <- -2*Q0 + sig[3]*sig[4] - sig[1]*sig[6]
+      Q2 <- sig[3]*sig[5] - sig[2]*sig[6] - Q0 - Q1
+      
       mu_12 <- (-Q1 + c(1,-1)*sqrt(Q1^2 - 4*Q2*Q0))/(2*Q2)
       cond <- function(mu){
         z <- mu*zh + (1-mu)*ze
