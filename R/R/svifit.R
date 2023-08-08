@@ -54,6 +54,8 @@ svifit <- function(x, y, fit="direct", na.rm=TRUE, low_ecc=TRUE, W=NA, a=NA, ini
     if(low_ecc){
       ze2 <- c(-zh2[1],1)
       ze <- c(ze2, M0 %*% ze2)
+      d <- zh-ze
+      e <- ze
       Dx <- cbind(2*x, 0, y, 1, 0, 0)
       Dy <- cbind(0, 2*y, x, 0, 1, 0)
       Sxy <- Matrix::crossprod(Dx,Dx) + Matrix::crossprod(Dy,Dy)
@@ -65,15 +67,22 @@ svifit <- function(x, y, fit="direct", na.rm=TRUE, low_ecc=TRUE, W=NA, a=NA, ini
       Q2 <- sig[3]*sig[5] - sig[2]*sig[6] - Q0 - Q1
       
       mu_12 <- (-Q1 + c(1,-1)*sqrt(Q1^2 - 4*Q2*Q0))/(2*Q2)
-      cond <- function(mu){
-        z <- mu*zh + (1-mu)*ze
-        a <- z[3]^2 - 4*z[1]
-        b <- 2*z[3]*z[5] - 4*z[4]
-        C <- z[5]^2 - 4*z[6]
-        4*a*C - b^2
-      }
-      mu_min <- uniroot(cond, c(0,10^3))$root+1e-4
-      mu <- max(mu_min, max(mu_12), 1)
+      s <- c(t(d)%*%S%*%d, 2*t(d)%*%S%*%e, t(e)%*%S%*%e) 
+      sxy <- c(t(d)%*%Sxy%*%d, 2*t(d)%*%Sxy%*%e, t(e)%*%Sxy%*%e)
+      MU <- cbind(c(mu_12[1]^2, mu_12[1], 1), c(mu_12[2]^2, mu_12[2], 1))
+      if((s %*% MU[,1] / (sxy %*% MU[,1])) < (s %*% MU[,2] / (sxy %*% MU[,2]))) mu_12 <- mu_12[c(2,1)] # mu_12[1] = maximizer, mu_12[2] = minimizer
+      
+      co <- c(d[3]*d[4]*d[5] - d[1]*d[5]^2 - d[6]*d[3]^2,
+              e[3]*d[4]*d[5] + d[3]*e[4]*d[5] + d[3]*d[4]*e[5] - d[5]^2*e[1]-2*d[1]*d[5]*e[5] - d[3]^2*e[6]-2*d[6]*d[3]*e[3] + 4*d[1]*d[6] - d[4]^2,
+              e[3]*e[4]*d[5]+e[3]*d[4]*e[5]+d[3]*e[4]*e[5] - d[1]*e[5]^2 - 2*d[5]*e[1]*e[5]-d[6]*e[3]^2 - 2*d[3]*e[6]*e[3] + 4*d[6]*e[1]-2*d[4]*e[4]+4*d[1]*e[6],
+              e[3]*e[4]*e[5] - e[1]*e[5]^2 - e[6]*e[3]^2 + 4*e[1]*e[6] - e[4]^2)      
+      p <- polynomial(rev(co))
+      mu0 <- solve(p)
+      mu0[mu0 < 0.5] <- 0.5
+      mu0 <- sort(mu0)
+      
+      mu <- max(0.5, mu0[3], mu_12[2])
+      
       z <- (1-mu)*ze + mu*zh
     } else {
       z <- zh

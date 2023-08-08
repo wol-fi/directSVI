@@ -2,6 +2,7 @@
 importFrom("graphics", "points", "abline")
 importFrom("stats", "predict", "lm.fit", "lm.wfit", "optim", "uniroot", "integrate")
 importFrom("Matrix", "tcrossprod", "chol2inv", "chol")
+importFrom("polynom", "polynomial")
 
 # Export
 export("svi", "svifit", "svipar", "geom")
