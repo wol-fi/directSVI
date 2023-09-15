@@ -114,7 +114,7 @@ svifit <- function(x, ivol, iterative=TRUE, flat_exp=FALSE, na.rm=TRUE, W=NA, a=
   yhat <- sqrt(par[1] + par[2]*par[3]*xb + par[2]*sqrt(xb^2 + par[5]^2))
   
   names(par) <- c("a", "b", "rho", "m", "sigma")
-  fit <- list(yhat=yhat, par=par, input=cbind(x,ivol), resid=yhat-ivol)
+  fit <- list(data=data.frame(x=x, y=y), yhat=yhat, par=par, input=cbind(x,ivol), resid=yhat-ivol)
   class(fit) <- "svi"
   return(fit)
 }
@@ -130,18 +130,13 @@ predict.svi <- function(object, x=NULL, ...){
 }
 
 plot.svi <-function(fit, extrap=1, ...){
-  df <- fit$input
-  x <- df[,1]
-  if(extrap != 1){
-    mm <- extrap*c(min(x), max(x))
-    xn <- seq(mm[1], mm[2], length.out=round(length(x)*1.5))
-    yh <- predict(fit, xn)
-  } else {
-    yh <- fit$yhat
-    xn <- x
-  }
+  df <- fit$data
+  x <- df$x
+  dx <- mean(abs(diff(x)))
+  xn <- seq(min(x)-3*dx, max(x)+3*dx, dx/5)
+  yh <- sqrt(svi(xn, fit$par))
   plot(xn, yh, type="l")
-  points(df)
+  points(x, sqrt(df$y))
 }
 
 
